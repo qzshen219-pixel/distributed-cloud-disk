@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>image/search.png</file>
+        <file>image/search_dark.png</file>
+        <file>image/message.css</file>
+        <file>image/intiloading.png</file>
+    </qresource>
+</RCC>

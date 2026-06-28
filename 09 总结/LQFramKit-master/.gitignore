@@ -1,0 +1,16 @@
+#pro.user
+LQFramKit.pro.user
+bin/*
+build_/*
+tempFiles/*
+*.Debug
+*.Release
+*Makefile
+*.o
+*moc_*.cpp
+*ui_*.h
+
+*.lib
+*.dll
+*.a
+*.exe

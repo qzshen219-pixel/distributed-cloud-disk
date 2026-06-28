@@ -1,0 +1,44 @@
+# Build outputs
+*.o
+*.exe
+*.obj
+*.out
+
+# Build directories
+*/build/
+build/
+
+# Qt user files
+*.pro.user
+
+# IDE files
+.vscode/
+.idea/
+*.suo
+*.user
+
+# OS files
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Temporary files
+*.tmp
+*.log
+*.bak
+
+# Video/audio large files
+*.mp4
+*.avi
+*.mkv
+*.mp3
+*.wav
+*.iso
+
+# Software packages (too large)
+01 fastDFS/项目资料/软件安装包/
+02 redis/fastDFS/项目资料/软件安装包/
+
+# Password/key files
+*.key
+*.pem

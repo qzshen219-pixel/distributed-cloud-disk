@@ -540,5 +540,85 @@ Content-Type: application/octet-stream
 
 ---
 
-*文档生成时间：2026年6月28日*
-*项目环境：Ubuntu 22.04 LTS (VMware) + Windows 10 (Qt 客户端)*
+## 十一、更新日志
+
+### v1.1.0 (2026-06-28)
+
+#### 新增功能
+
+**Token 认证机制**
+- 登录接口生成 token 并存入数据库（格式：`user_id_random`）
+- filelist/upload/delete/share 接口验证 `X-Auth-Token` 请求头
+- 无 token 请求返回 HTTP 401
+- 前端自动存储 token（localStorage）并随请求发送
+- download 接口通过 URL 参数 `?token=xxx` 传递
+
+**Docker 支持**
+- `docker/Dockerfile`：单容器部署（MySQL + Redis + Nginx + FastDFS + FastCGI）
+- `docker/docker-compose.yml`：一键启动
+- `docker/start.sh`：自动初始化数据库、创建表、启动所有服务
+- `docker/server/`：FastCGI 源码（编译进容器）
+
+#### Bug 修复
+
+**登录验证**
+- 修复：登录不验证密码，任何密码都返回"Login success"
+- 修复：注册不检查用户名重复，可重复注册
+- 现在：密码错误返回 `code:401`，用户名已存在返回 `code:409`
+
+**文件下载**
+- 修复：download 返回 JSON 元信息而非文件内容
+- 修复：download 对不存在的文件返回 HTTP 200
+- 现在：download 直接返回文件流 + 正确的 HTTP 状态码（404/400/200）
+
+**Nginx 配置**
+- 修复：nginx.conf 有两个重复的 HTTPS server 块
+- 修复：server 块嵌套错误导致语法报错
+- 修复：`/hello/` 和 `/upload-page/` 路径指向旧的 login.html
+
+**FastCGI 程序**
+- 重写全部 7 个 FastCGI 程序，使用公共头文件 `fcgi_common.h`
+- upload：修复 10MB 栈分配导致的栈溢出，改用 malloc
+- upload：修复 multipart 解析，正确提取 user 字段
+- 所有接口添加 SQL 注入防护（mysql_real_escape_string）
+- delete：只能删除自己的文件（验证 user_id）
+- share：只能分享自己的文件（验证 user_id）
+
+#### 代码重构
+
+**公共头文件 fcgi_common.h**
+- 新增 `verify_token()` — token 验证函数
+- 新增 `create_token()` — 生成并保存 token
+- 新增 `get_auth_token()` — 从请求头获取 token
+- 新增 `multipart_get_field()` — multipart 表单字段解析
+- 新增 `multipart_get_filename()` — 提取文件名
+- 新增 `multipart_get_attr()` — 提取扩展属性
+
+**前端重构**
+- 新增登录页/注册页切换
+- 新增拖拽上传支持
+- 新增上传进度条
+- 新增文件选择/批量删除
+- 新增分享链接弹窗+复制功能
+- 新增退出登录
+- localStorage 自动登录
+
+#### 文档
+
+- 新增 `README.md`（项目总览）
+- 新增 `docs/架构设计.md`（架构详解、Nginx 配置、数据库设计）
+- 新增 `API文档.md`（接口文档）
+- 新增 `docker/`（Docker 部署文档）
+
+### v1.0.0 (2026-06-28)
+
+初始版本，包含：
+- 7 个 FastCGI 服务端程序
+- Qt/C++ 桌面客户端
+- Web 前端页面
+- 完整的登录/注册/上传/下载/删除/分享功能
+
+---
+
+*文档更新时间：2026年6月28日*
+*项目环境：Ubuntu 22.04 LTS (VMware) + Windows 10*

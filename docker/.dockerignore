@@ -1,0 +1,34 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.suo
+*.user
+
+# Build
+*/build/
+*.o
+*.exe
+
+# Large files
+*.mp4
+*.avi
+*.mkv
+*.mp3
+*.wav
+*.iso
+
+# Software packages
+01 fastDFS/项目资料/软件安装包/
+02 redis/fastDFS/项目资料/软件安装包/
+
+# Documentation (keep only essential)
+*.pdf
+*.doc
+*.docx
+
+# LQFramKit (large framework)
+09 总结/LQFramKit-master/

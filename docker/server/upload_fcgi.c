@@ -76,7 +76,7 @@ int main() {
         }
 
         char file_path[512];
-        snprintf(file_path, sizeof(file_path), "/home/s/uploads/%ld_%d",
+        snprintf(file_path, sizeof(file_path), "/home/cloud/uploads/%ld_%d",
                  time(NULL), rand());
 
         FILE *fp = fopen(file_path, "wb");

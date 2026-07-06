@@ -1,9 +1,11 @@
-FROM ubuntu:22.04
+FROM docker.m.daocloud.io/library/ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Shanghai
 
-# Install dependencies
+RUN sed -i 's|http://archive.ubuntu.com|http://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list && \
+    sed -i 's|http://security.ubuntu.com|http://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list
+
 RUN apt-get update && apt-get install -y \
     build-essential \
     libmysqlclient-dev \
@@ -11,63 +13,64 @@ RUN apt-get update && apt-get install -y \
     libevent-dev \
     libpcre3-dev \
     zlib1g-dev \
-    libfastcommon-dev \
+    libfcgi-dev \
+    libfcgi0ldbl \
     mysql-server \
     mysql-client \
     redis-server \
-    spawn-fcgi \
     wget \
     curl \
+    autoconf \
+    automake \
     && rm -rf /var/lib/apt/lists/*
 
-# Install FastDFS
-RUN cd /tmp && \
-    wget -q https://github.com/happyfish100/libfastcommon/archive/refs/tags/V1.0.80.tar.gz -O libfastcommon.tar.gz && \
-    tar xzf libfastcommon.tar.gz && cd libfastcommon-1.0.80 && \
+COPY docker/sources/libfastcommon-1.0.36.tar.gz /tmp/
+RUN cd /tmp && tar xzf libfastcommon-1.0.36.tar.gz && cd libfastcommon-1.0.36 && \
     ./make.sh && ./make.sh install && \
-    cd /tmp && \
-    wget -q https://github.com/happyfish100/fastdfs/archive/refs/tags/V6.12.2.tar.gz -O fastdfs.tar.gz && \
-    tar xzf fastdfs.tar.gz && cd fastdfs-6.12.2 && \
-    ./make.sh && ./make.sh install && \
+    cp src/*.h /usr/include/ 2>/dev/null; \
     rm -rf /tmp/*
 
-# Install Nginx with FastDFS module
-RUN cd /tmp && \
-    wget -q https://github.com/happyfish100/fastdfs-nginx-module/archive/refs/tags/V1.22.tar.gz -O nginx-module.tar.gz && \
-    tar xzf nginx-module.tar.gz && \
-    wget -q https://nginx.org/download/nginx-1.24.0.tar.gz -O nginx.tar.gz && \
-    tar xzf nginx.tar.gz && cd nginx-1.24.0 && \
-    ./configure --add-module=/tmp/fastdfs-nginx-module-1.22/src \
-        --prefix=/usr/local/nginx \
-        --with-http_ssl_module && \
-    make && make install && \
-    rm -rf /tmp/*
+COPY docker/sources/fastdfs-v5.10.tar.gz /tmp/fastdfs.tar.gz
+RUN cd /tmp && tar xzf fastdfs.tar.gz && cd fastdfs-5.10 && \
+    ./make.sh && ./make.sh install && rm -rf /tmp/*
 
-# Create directories
-RUN mkdir -p /home/cloud/uploads \
-    /usr/local/nginx/html \
-    /var/log/nginx \
-    /var/run/fdfs \
-    /etc/fdfs
+COPY docker/sources/nginx.tar.gz /tmp/
+COPY docker/sources/nginx-module-v1.20.tar.gz /tmp/
+RUN cd /tmp && tar xzf nginx-module-v1.20.tar.gz && tar xzf nginx.tar.gz && \
+    cp fastdfs-nginx-module-1.20/src/mod_fastdfs.conf /etc/fdfs/ && \
+    sed -i 's/!g_http_params.support_multi_range/0/' fastdfs-nginx-module-1.20/src/common.c && \
+    cd nginx-1.24.0 && \
+    CFLAGS="-Wno-error" ./configure --add-module=/tmp/fastdfs-nginx-module-1.20/src \
+        --prefix=/usr/local/nginx --with-http_ssl_module && \
+    make && make install && rm -rf /tmp/*
 
-# Copy FastDFS configs
+COPY docker/sources/spawn-fcgi.tar.gz /tmp/
+RUN cd /tmp && tar xzf spawn-fcgi.tar.gz && cd spawn-fcgi-1.6.3 && \
+    ./autogen.sh && ./configure && make && make install && rm -rf /tmp/*
+
+RUN mkdir -p /home/cloud/uploads /usr/local/nginx/html /var/log/nginx /var/run/fdfs /etc/fdfs
+
 RUN cp /etc/fdfs/tracker.conf.sample /etc/fdfs/tracker.conf && \
     cp /etc/fdfs/storage.conf.sample /etc/fdfs/storage.conf && \
-    cp /etc/fdfs/client.conf.sample /etc/fdfs/client.conf
+    cp /etc/fdfs/client.conf.sample /etc/fdfs/client.conf && \
+    touch /etc/fdfs/http.conf && \
+    echo 'http.mime_types_filename=mime.types' >> /etc/fdfs/mod_fastdfs.conf && \
+    echo 'http.log_with_nginx=true' >> /etc/fdfs/mod_fastdfs.conf && \
+    echo 'http.default_content_type=application/octet-stream' >> /etc/fdfs/mod_fastdfs.conf && \
+    echo 'http.need_find_content_type=false' >> /etc/fdfs/mod_fastdfs.conf && \
+    echo 'http.trunk_size=256KB' >> /etc/fdfs/mod_fastdfs.conf && \
+    echo 'http.server_ip=127.0.0.1' >> /etc/fdfs/mod_fastdfs.conf && \
+    echo 'http.server_port=80' >> /etc/fdfs/mod_fastdfs.conf && \
+    echo 'load_fdfs_parameters_from_tracker=false' >> /etc/fdfs/mod_fastdfs.conf && \
+    echo 'tracker_server=127.0.0.1:22122' >> /etc/fdfs/mod_fastdfs.conf && \
+    cp /usr/local/nginx/conf/mime.types /etc/fdfs/mime.types
 
-# Copy nginx module config
-RUN cp /tmp/fastdfs-nginx-module-1.22/src/mod_fastdfs.conf /etc/fdfs/ 2>/dev/null; \
-    cp /usr/local/nginx/conf/mime.types /etc/fdfs/ 2>/dev/null; true
-
-# Copy project files
 COPY docker/nginx.conf /usr/local/nginx/conf/nginx.conf
 COPY docker/start.sh /start.sh
+RUN sed -i 's/\r$//' /start.sh && chmod +x /start.sh
 COPY web/index.html /usr/local/nginx/html/index.html
-
-# Copy server source code
 COPY docker/server/ /home/cloud/server/
 
-# Build FastCGI programs
 RUN cd /home/cloud/server && \
     gcc -o login_fcgi login_fcgi.c -lfcgi -lmysqlclient -lssl -lcrypto && \
     gcc -o register_fcgi register_fcgi.c -lfcgi -lmysqlclient -lssl -lcrypto && \
@@ -78,8 +81,5 @@ RUN cd /home/cloud/server && \
     gcc -o share_fcgi share_fcgi.c -lfcgi -lmysqlclient -lssl -lcrypto && \
     chmod +x *_fcgi
 
-RUN chmod +x /start.sh
-
 EXPOSE 80
-
 CMD ["/start.sh"]

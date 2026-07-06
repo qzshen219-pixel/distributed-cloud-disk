@@ -610,6 +610,17 @@ Content-Type: application/octet-stream
 - 新增 `API文档.md`（接口文档）
 - 新增 `docker/`（Docker 部署文档）
 
+### v1.1.0 (2026-07-01)
+
+新增 Docker 容器化部署：
+- 新增 `docker/Dockerfile`（多阶段构建）
+- 新增 `docker/docker-compose.yml`（一键部署）
+- 新增 `docker/start.sh`（容器启动脚本）
+- 新增 `docker/BUILD_TROUBLESHOOTING.md`（构建问题总结，14 个问题及解决方案）
+- 修复文件上传路径问题（`/home/s/` → `/home/cloud/`）
+- 修复 `mod_fastdfs.conf` 配置参数缺失
+- 适配 FastDFS 5.10 + libfastcommon 1.0.36 + nginx module V1.20
+
 ### v1.0.0 (2026-06-28)
 
 初始版本，包含：
@@ -620,5 +631,49 @@ Content-Type: application/octet-stream
 
 ---
 
-*文档更新时间：2026年6月28日*
-*项目环境：Ubuntu 22.04 LTS (VMware) + Windows 10*
+## Docker 部署指南
+
+### 环境要求
+- Docker Desktop (Windows) 或 Docker Engine (Linux)
+- 至少 2GB 可用内存
+
+### 一键启动
+
+```bash
+cd distributed-cloud-disk
+docker compose -f docker/docker-compose.yml up -d
+```
+
+访问地址：`http://localhost:8080`
+测试账号：`alice / 123456`
+
+### 常用命令
+
+```bash
+# 查看状态
+docker ps
+
+# 查看日志
+docker logs -f cloud-disk
+
+# 停止服务
+docker compose -f docker/docker-compose.yml down
+
+# 重新构建
+docker compose -f docker/docker-compose.yml up -d --build
+
+# 进入容器
+docker exec -it cloud-disk bash
+```
+
+### 数据持久化
+上传的文件通过 Docker Volume `cloud-data` 持久化存储，容器重建后数据不丢失。
+
+### 已知问题
+- Windows 10 Home + Docker Desktop 的 localhost 端口转发可能不稳定
+- 解决方案：使用 WSL2 IP 地址访问（`wsl -d Ubuntu -- hostname -I`）
+
+---
+
+*文档更新时间：2026年7月1日*
+*项目环境：Ubuntu 22.04 LTS (Docker) + Windows 10*

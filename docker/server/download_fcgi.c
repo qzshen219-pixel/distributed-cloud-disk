@@ -74,7 +74,7 @@ int main() {
 
         if (!fp) {
             char alt_path[512];
-            snprintf(alt_path, sizeof(alt_path), "/home/s/uploads/%s", stored_path);
+            snprintf(alt_path, sizeof(alt_path), "/home/cloud/uploads/%s", stored_path);
             fp = fopen(alt_path, "rb");
         }
 

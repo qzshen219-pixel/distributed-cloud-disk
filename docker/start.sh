@@ -87,4 +87,4 @@ echo "  Account: alice / 123456"
 echo "========================================="
 
 # Keep container running
-tail -f /var/log/nginx/access.log
+exec tail -f /dev/null

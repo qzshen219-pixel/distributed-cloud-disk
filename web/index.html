@@ -190,9 +190,14 @@ function toast(msg, type) {
 }
 
 function api(method, path, body) {
+  const h = { 'Content-Type': 'application/json' };
+  if (currentUser && currentUser.token) h['X-Auth-Token'] = currentUser.token;
   return fetch(API + path, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: h,
+    body: body ? JSON.stringify(body) : undefined
+  }).then(r => r.json());
+},
     body: body ? JSON.stringify(body) : undefined
   }).then(r => r.json());
 }

@@ -246,7 +246,7 @@ function enterMain() {
 
 function loadFileList() {
   if (!currentUser) return;
-  api('GET', '/filelist?user_id=' + currentUser.id).then(r => {
+  api('GET', '/filelist').then(r => {
     if (r.code === '000') {
       fileList = r.files || [];
       renderFileList();

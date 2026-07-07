@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>简单云盘</title>
+<title>绠€鍗曚簯鐩?/title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; min-height: 100vh; }
@@ -69,58 +69,58 @@ tr:hover { background: #f1f3f4; }
 <!-- Login Page -->
 <div id="page-login" class="auth-page">
   <div class="auth-box">
-    <h2>简单云盘</h2>
-    <p class="subtitle">登录你的账号</p>
+    <h2>绠€鍗曚簯鐩?/h2>
+    <p class="subtitle">鐧诲綍浣犵殑璐﹀彿</p>
     <div class="form-group">
-      <label>用户名</label>
-      <input type="text" id="login-user" placeholder="请输入用户名" autocomplete="username">
+      <label>鐢ㄦ埛鍚?/label>
+      <input type="text" id="login-user" placeholder="璇疯緭鍏ョ敤鎴峰悕" autocomplete="username">
     </div>
     <div class="form-group">
-      <label>密码</label>
-      <input type="password" id="login-pass" placeholder="请输入密码" autocomplete="current-password">
+      <label>瀵嗙爜</label>
+      <input type="password" id="login-pass" placeholder="璇疯緭鍏ュ瘑鐮? autocomplete="current-password">
     </div>
-    <button class="btn btn-primary" onclick="doLogin()">登录</button>
-    <p class="switch-link">还没有账号？<a onclick="showPage('page-register')">立即注册</a></p>
+    <button class="btn btn-primary" onclick="doLogin()">鐧诲綍</button>
+    <p class="switch-link">杩樻病鏈夎处鍙凤紵<a onclick="showPage('page-register')">绔嬪嵆娉ㄥ唽</a></p>
   </div>
 </div>
 
 <!-- Register Page -->
 <div id="page-register" class="auth-page hidden">
   <div class="auth-box">
-    <h2>创建账号</h2>
-    <p class="subtitle">注册新用户</p>
+    <h2>鍒涘缓璐﹀彿</h2>
+    <p class="subtitle">娉ㄥ唽鏂扮敤鎴?/p>
     <div class="form-group">
-      <label>用户名 *</label>
-      <input type="text" id="reg-user" placeholder="3-16位字母数字下划线">
+      <label>鐢ㄦ埛鍚?*</label>
+      <input type="text" id="reg-user" placeholder="3-16浣嶅瓧姣嶆暟瀛椾笅鍒掔嚎">
     </div>
     <div class="form-group">
-      <label>密码 *</label>
-      <input type="password" id="reg-pass" placeholder="至少6位">
+      <label>瀵嗙爜 *</label>
+      <input type="password" id="reg-pass" placeholder="鑷冲皯6浣?>
     </div>
     <div class="form-group">
-      <label>确认密码 *</label>
-      <input type="password" id="reg-pass2" placeholder="再次输入密码">
+      <label>纭瀵嗙爜 *</label>
+      <input type="password" id="reg-pass2" placeholder="鍐嶆杈撳叆瀵嗙爜">
     </div>
     <div class="form-group">
-      <label>昵称</label>
-      <input type="text" id="reg-nick" placeholder="选填">
+      <label>鏄电О</label>
+      <input type="text" id="reg-nick" placeholder="閫夊～">
     </div>
     <div class="form-group">
-      <label>邮箱</label>
-      <input type="email" id="reg-email" placeholder="选填">
+      <label>閭</label>
+      <input type="email" id="reg-email" placeholder="閫夊～">
     </div>
-    <button class="btn btn-primary" onclick="doRegister()">注册</button>
-    <p class="switch-link">已有账号？<a onclick="showPage('page-login')">去登录</a></p>
+    <button class="btn btn-primary" onclick="doRegister()">娉ㄥ唽</button>
+    <p class="switch-link">宸叉湁璐﹀彿锛?a onclick="showPage('page-login')">鍘荤櫥褰?/a></p>
   </div>
 </div>
 
 <!-- Main Page -->
 <div id="page-main" class="hidden">
   <div class="header">
-    <h1>简单云盘</h1>
+    <h1>绠€鍗曚簯鐩?/h1>
     <div class="user-info">
       <span id="display-user"></span>
-      <button class="btn-logout" onclick="doLogout()">退出</button>
+      <button class="btn-logout" onclick="doLogout()">閫€鍑?/button>
     </div>
   </div>
   <div class="container">
@@ -128,7 +128,7 @@ tr:hover { background: #f1f3f4; }
     <div class="card">
       <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
         <div class="icon">+</div>
-        <p>点击或拖拽文件到这里上传</p>
+        <p>鐐瑰嚮鎴栨嫋鎷芥枃浠跺埌杩欓噷涓婁紶</p>
       </div>
       <input type="file" id="file-input" class="hidden" onchange="handleFileSelect(this)">
       <div class="progress-bar" id="progress-bar"><div class="fill" id="progress-fill"></div></div>
@@ -137,24 +137,24 @@ tr:hover { background: #f1f3f4; }
     <!-- File List -->
     <div class="card">
       <div class="toolbar">
-        <button class="btn btn-primary" onclick="loadFileList()">刷新</button>
-        <button class="btn btn-danger" onclick="deleteSelected()">删除选中</button>
+        <button class="btn btn-primary" onclick="loadFileList()">鍒锋柊</button>
+        <button class="btn btn-danger" onclick="deleteSelected()">鍒犻櫎閫変腑</button>
         <span id="file-count" style="color:#5f6368;font-size:14px;margin-left:auto;"></span>
       </div>
       <table>
         <thead>
           <tr>
             <th style="width:40px"><input type="checkbox" id="check-all" onchange="toggleAll(this)"></th>
-            <th>文件名</th>
-            <th style="width:100px">大小</th>
-            <th style="width:160px">上传时间</th>
-            <th style="width:80px">下载</th>
-            <th style="width:200px">操作</th>
+            <th>鏂囦欢鍚?/th>
+            <th style="width:100px">澶у皬</th>
+            <th style="width:160px">涓婁紶鏃堕棿</th>
+            <th style="width:80px">涓嬭浇</th>
+            <th style="width:200px">鎿嶄綔</th>
           </tr>
         </thead>
         <tbody id="file-tbody"></tbody>
       </table>
-      <div class="empty-state" id="empty-state">暂无文件</div>
+      <div class="empty-state" id="empty-state">鏆傛棤鏂囦欢</div>
     </div>
   </div>
 </div>
@@ -162,11 +162,11 @@ tr:hover { background: #f1f3f4; }
 <!-- Share Modal -->
 <div id="share-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeModal('share-modal')">
   <div class="modal">
-    <h3>分享文件</h3>
+    <h3>鍒嗕韩鏂囦欢</h3>
     <p id="share-result"></p>
     <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeModal('share-modal')">关闭</button>
-      <button class="btn btn-primary" onclick="copyShareLink()">复制链接</button>
+      <button class="btn btn-outline" onclick="closeModal('share-modal')">鍏抽棴</button>
+      <button class="btn btn-primary" onclick="copyShareLink()">澶嶅埗閾炬帴</button>
     </div>
   </div>
 </div>
@@ -204,16 +204,16 @@ function api(method, path, body) {
 function doLogin() {
   const user = document.getElementById('login-user').value.trim();
   const pass = document.getElementById('login-pass').value;
-  if (!user || !pass) return toast('请填写用户名和密码', 'error');
+  if (!user || !pass) return toast('璇峰～鍐欑敤鎴峰悕鍜屽瘑鐮?, 'error');
   api('POST', '/login', { username: user, password: pass }).then(r => {
     if (r.code === '000') {
       currentUser = r.data;
       localStorage.setItem('user', JSON.stringify(currentUser));
       enterMain();
     } else {
-      toast(r.message || '登录失败', 'error');
+      toast(r.message || '鐧诲綍澶辫触', 'error');
     }
-  }).catch(() => toast('网络错误', 'error'));
+  }).catch(() => toast('缃戠粶閿欒', 'error'));
 }
 
 function doRegister() {
@@ -222,18 +222,18 @@ function doRegister() {
   const pass2 = document.getElementById('reg-pass2').value;
   const nick = document.getElementById('reg-nick').value.trim();
   const email = document.getElementById('reg-email').value.trim();
-  if (!user || !pass) return toast('请填写用户名和密码', 'error');
-  if (pass !== pass2) return toast('两次密码不一致', 'error');
-  if (pass.length < 6) return toast('密码至少6位', 'error');
+  if (!user || !pass) return toast('璇峰～鍐欑敤鎴峰悕鍜屽瘑鐮?, 'error');
+  if (pass !== pass2) return toast('涓ゆ瀵嗙爜涓嶄竴鑷?, 'error');
+  if (pass.length < 6) return toast('瀵嗙爜鑷冲皯6浣?, 'error');
   api('POST', '/register', { username: user, password: pass, nickname: nick, email: email }).then(r => {
     if (r.code === '002') {
-      toast('注册成功，请登录', 'success');
+      toast('娉ㄥ唽鎴愬姛锛岃鐧诲綍', 'success');
       showPage('page-login');
       document.getElementById('login-user').value = user;
     } else {
-      toast(r.message || '注册失败', 'error');
+      toast(r.message || '娉ㄥ唽澶辫触', 'error');
     }
-  }).catch(() => toast('网络错误', 'error'));
+  }).catch(() => toast('缃戠粶閿欒', 'error'));
 }
 
 function doLogout() {
@@ -255,7 +255,7 @@ function loadFileList() {
       fileList = r.files || [];
       renderFileList();
     } else if (r.code === '401') {
-      toast('登录已过期，请重新登录', 'error');
+      toast('鐧诲綍宸茶繃鏈燂紝璇烽噸鏂扮櫥褰?, 'error');
       doLogout();
     }
   });
@@ -274,7 +274,7 @@ function renderFileList() {
     return;
   }
   empty.classList.add('hidden');
-  count.textContent = '共 ' + fileList.length + ' 个文件';
+  count.textContent = '鍏?' + fileList.length + ' 涓枃浠?;
 
   tbody.innerHTML = fileList.map(f => {
     const size = f.size > 1048576 ? (f.size/1048576).toFixed(1)+' MB' : f.size > 1024 ? (f.size/1024).toFixed(1)+' KB' : f.size+' B';
@@ -285,9 +285,9 @@ function renderFileList() {
       <td>${f.time || '-'}</td>
       <td>${f.downloads || 0}</td>
       <td>
-        <button class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="downloadFile(${f.id})">下载</button>
-        <button class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="shareFile(${f.id})">分享</button>
-        <button class="btn btn-danger" style="padding:4px 10px;font-size:12px" onclick="deleteFile(${f.id},'${esc(f.name)}')">删除</button>
+        <button class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="downloadFile(${f.id})">涓嬭浇</button>
+        <button class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="shareFile(${f.id})">鍒嗕韩</button>
+        <button class="btn btn-danger" style="padding:4px 10px;font-size:12px" onclick="deleteFile(${f.id},'${esc(f.name)}')">鍒犻櫎</button>
       </td>
     </tr>`;
   }).join('');
@@ -350,52 +350,52 @@ function uploadFile(file) {
       try {
         const r = JSON.parse(xhr.responseText);
         if (r.code === '000') {
-          toast('上传成功: ' + file.name, 'success');
+          toast('涓婁紶鎴愬姛: ' + file.name, 'success');
           loadFileList();
         } else {
-          toast(r.message || '上传失败', 'error');
+          toast(r.message || '涓婁紶澶辫触', 'error');
         }
-      } catch(e) { toast('上传失败', 'error'); }
+      } catch(e) { toast('涓婁紶澶辫触', 'error'); }
     };
-    xhr.onerror = function() { bar.style.display = 'none'; toast('网络错误', 'error'); };
+    xhr.onerror = function() { bar.style.display = 'none'; toast('缃戠粶閿欒', 'error'); };
     xhr.send(fullBody);
   };
   reader.readAsArrayBuffer(file);
 }
 
 function downloadFile(id) {
-  if (!currentUser || !currentUser.token) return toast('请先登录', 'error');
+  if (!currentUser || !currentUser.token) return toast('璇峰厛鐧诲綍', 'error');
   window.open(API + '/download?file_id=' + id + '&token=' + encodeURIComponent(currentUser.token), '_blank');
 }
 
 function deleteFile(id, name) {
-  if (!currentUser || !currentUser.token) return toast('请先登录', 'error');
-  if (!confirm('确定删除 "' + name + '" ？')) return;
+  if (!currentUser || !currentUser.token) return toast('璇峰厛鐧诲綍', 'error');
+  if (!confirm('纭畾鍒犻櫎 "' + name + '" 锛?)) return;
   api('POST', '/delete', { file_id: id }).then(r => {
     if (r.code === '000') {
-      toast('已删除', 'success');
+      toast('宸插垹闄?, 'success');
       loadFileList();
     } else if (r.code === '401') {
-      toast('登录已过期', 'error');
+      toast('鐧诲綍宸茶繃鏈?, 'error');
       doLogout();
     } else {
-      toast(r.message || '删除失败', 'error');
+      toast(r.message || '鍒犻櫎澶辫触', 'error');
     }
   });
 }
 
 function deleteSelected() {
-  if (!currentUser || !currentUser.token) return toast('请先登录', 'error');
+  if (!currentUser || !currentUser.token) return toast('璇峰厛鐧诲綍', 'error');
   const checks = document.querySelectorAll('.file-check:checked');
-  if (checks.length === 0) return toast('请先选择文件', 'info');
-  if (!confirm('确定删除选中的 ' + checks.length + ' 个文件？')) return;
+  if (checks.length === 0) return toast('璇峰厛閫夋嫨鏂囦欢', 'info');
+  if (!confirm('纭畾鍒犻櫎閫変腑鐨?' + checks.length + ' 涓枃浠讹紵')) return;
   const ids = Array.from(checks).map(c => parseInt(c.value));
   let done = 0;
   ids.forEach(id => {
     api('POST', '/delete', { file_id: id }).then(r => {
       done++;
       if (done === ids.length) {
-        toast('已删除 ' + ids.length + ' 个文件', 'success');
+        toast('宸插垹闄?' + ids.length + ' 涓枃浠?, 'success');
         loadFileList();
       }
     });
@@ -404,25 +404,25 @@ function deleteSelected() {
 
 let lastShareUrl = '';
 function shareFile(id) {
-  if (!currentUser || !currentUser.token) return toast('请先登录', 'error');
+  if (!currentUser || !currentUser.token) return toast('璇峰厛鐧诲綍', 'error');
   api('POST', '/share', { file_id: id, expire_days: 7 }).then(r => {
     if (r.code === '000') {
       lastShareUrl = r.data.share_url;
       document.getElementById('share-result').innerHTML =
-        '分享链接：<br><a href="' + r.data.share_url + '" target="_blank" style="color:#1a73e8">' + r.data.share_url + '</a>' +
-        '<br><br>有效期：' + r.data.expire;
+        '鍒嗕韩閾炬帴锛?br><a href="' + r.data.share_url + '" target="_blank" style="color:#1a73e8">' + r.data.share_url + '</a>' +
+        '<br><br>鏈夋晥鏈燂細' + r.data.expire;
       document.getElementById('share-modal').classList.remove('hidden');
     } else if (r.code === '401') {
-      toast('登录已过期', 'error');
+      toast('鐧诲綍宸茶繃鏈?, 'error');
       doLogout();
     } else {
-      toast(r.message || '分享失败', 'error');
+      toast(r.message || '鍒嗕韩澶辫触', 'error');
     }
   });
 }
 
 function copyShareLink() {
-  navigator.clipboard.writeText(lastShareUrl).then(() => toast('已复制', 'success'));
+  navigator.clipboard.writeText(lastShareUrl).then(() => toast('宸插鍒?, 'success'));
 }
 
 function closeModal(id) {

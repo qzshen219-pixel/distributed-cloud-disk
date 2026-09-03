@@ -1,0 +1,168 @@
+services:
+  cloud-disk-ha:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: cloud-disk-ha
+    ports:
+      - "${CLOUD_PORT:-8080}:80"
+    volumes:
+      - cloud-ha-data:/home/cloud/uploads
+      - cloud-ha-mysql-data:/var/lib/mysql
+      - cloud-ha-fastdfs-data:/home/yuqing/fastdfs/storage
+    restart: unless-stopped
+    networks:
+      redis-ha:
+        ipv4_address: 172.29.0.30
+    environment:
+      TZ: Asia/Shanghai
+      SHARE_BASE_URL: http://localhost:${CLOUD_PORT:-8080}
+      REDIS_SENTINELS: redis-sentinel-1:26379,redis-sentinel-2:26379,redis-sentinel-3:26379
+      REDIS_MASTER_NAME: cloud-master
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-ChangeMe-Redis-2026}
+      REDIS_TOKEN_TTL: ${REDIS_TOKEN_TTL:-3600}
+    depends_on:
+      redis-sentinel-1:
+        condition: service_healthy
+      redis-sentinel-2:
+        condition: service_healthy
+      redis-sentinel-3:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+
+  redis-master:
+    image: m.daocloud.io/docker.io/library/redis:7.2-alpine
+    restart: unless-stopped
+    networks:
+      redis-ha:
+        ipv4_address: 172.29.0.10
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-ChangeMe-Redis-2026}
+    command:
+      - /bin/sh
+      - -c
+      - exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD" --masterauth "$$REDIS_PASSWORD"
+    volumes:
+      - redis-master-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping 2>/dev/null | grep -q PONG"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+
+  redis-replica-1:
+    image: m.daocloud.io/docker.io/library/redis:7.2-alpine
+    restart: unless-stopped
+    networks:
+      redis-ha:
+        ipv4_address: 172.29.0.11
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-ChangeMe-Redis-2026}
+    command:
+      - /bin/sh
+      - -c
+      - exec redis-server --appendonly yes --replicaof redis-master 6379 --masterauth "$$REDIS_PASSWORD" --requirepass "$$REDIS_PASSWORD"
+    volumes:
+      - redis-replica-1-data:/data
+    depends_on:
+      redis-master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping 2>/dev/null | grep -q PONG"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+
+  redis-replica-2:
+    image: m.daocloud.io/docker.io/library/redis:7.2-alpine
+    restart: unless-stopped
+    networks:
+      redis-ha:
+        ipv4_address: 172.29.0.12
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-ChangeMe-Redis-2026}
+    command:
+      - /bin/sh
+      - -c
+      - exec redis-server --appendonly yes --replicaof redis-master 6379 --masterauth "$$REDIS_PASSWORD" --requirepass "$$REDIS_PASSWORD"
+    volumes:
+      - redis-replica-2-data:/data
+    depends_on:
+      redis-master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping 2>/dev/null | grep -q PONG"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+
+  redis-sentinel-1:
+    image: cloud-redis-sentinel:local
+    build:
+      context: redis
+      dockerfile: Dockerfile.sentinel
+    restart: unless-stopped
+    environment: &sentinel-environment
+      REDIS_MASTER_NAME: cloud-master
+      REDIS_MASTER_HOST: redis-master
+      REDIS_SENTINEL_PEERS: redis-sentinel-1:26379,redis-sentinel-2:26379,redis-sentinel-3:26379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-ChangeMe-Redis-2026}
+    networks:
+      redis-ha:
+        ipv4_address: 172.29.0.21
+    depends_on: &sentinel-dependencies
+      redis-master:
+        condition: service_healthy
+      redis-replica-1:
+        condition: service_healthy
+      redis-replica-2:
+        condition: service_healthy
+    healthcheck: &sentinel-healthcheck
+      test: ["CMD-SHELL", "redis-cli -p 26379 ping | grep -q PONG"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+
+  redis-sentinel-2:
+    image: cloud-redis-sentinel:local
+    build:
+      context: redis
+      dockerfile: Dockerfile.sentinel
+    restart: unless-stopped
+    environment: *sentinel-environment
+    networks:
+      redis-ha:
+        ipv4_address: 172.29.0.22
+    depends_on: *sentinel-dependencies
+    healthcheck: *sentinel-healthcheck
+
+  redis-sentinel-3:
+    image: cloud-redis-sentinel:local
+    build:
+      context: redis
+      dockerfile: Dockerfile.sentinel
+    restart: unless-stopped
+    environment: *sentinel-environment
+    networks:
+      redis-ha:
+        ipv4_address: 172.29.0.23
+    depends_on: *sentinel-dependencies
+    healthcheck: *sentinel-healthcheck
+
+volumes:
+  cloud-ha-data:
+  cloud-ha-mysql-data:
+  cloud-ha-fastdfs-data:
+  redis-master-data:
+  redis-replica-1-data:
+  redis-replica-2-data:
+
+networks:
+  redis-ha:
+    ipam:
+      config:
+        - subnet: 172.29.0.0/24

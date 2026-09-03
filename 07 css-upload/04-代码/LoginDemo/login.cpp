@@ -156,7 +156,7 @@ void Login::on_regAccount_clicked()
     }
 }
 
-void Login::on_settingSaveBtn_clicked()
+void Login::on_okBtn_clicked()
 {
     if (!ui->ip || !ui->port) return;
 
@@ -178,6 +178,7 @@ void Login::on_settingSaveBtn_clicked()
     LoginInstance* ins = LoginInstance::getInstance();
     ins->setServerIP(serverIP);
     ins->setServerPort(serverPort);
+    ins->saveToFile();
 
     if (ui->ip) ui->ip->setText(serverIP);
     if (ui->port) ui->port->setText(serverPort);
@@ -249,10 +250,16 @@ void Login::on_loginButton_clicked()
             QJsonObject resObj = resDoc.object();
             QString status = resObj.value("code").toString();
             QString message = resObj.value("message").toString();
-            QString token = resObj.value("token").toString();
+            QJsonObject data = resObj.value("data").toObject();
+            QString token = data.value("token").toString();
+            int userId = data.value("id").toInt();
 
             if(status == "000") {
-                handleLoginSuccess(token);
+                if (token.isEmpty() || userId <= 0) {
+                    handleLoginFailed("服务器返回的登录凭证无效");
+                } else {
+                    handleLoginSuccess(token, userId);
+                }
             } else {
                 handleLoginFailed(message);
             }
@@ -360,14 +367,14 @@ void Login::handleRegisterFailed(const QString &message)
     if (ui->reg_userName) ui->reg_userName->setFocus();
 }
 
-void Login::handleLoginSuccess(const QString &token)
+void Login::handleLoginSuccess(const QString &token, int userId)
 {
     LoginInstance *ins = LoginInstance::getInstance();
     if (ui->ip) ins->setServerIP(ui->ip->text());
     if (ui->port) ins->setServerPort(ui->port->text());
     if (ui->login_user) ins->setUserName(ui->login_user->text());
     ins->setUserToken(token);
-    ins->setUserId(2);
+    ins->setUserId(userId);
 
     QMessageBox::information(this, "成功", "登录成功！");
     this->accept();

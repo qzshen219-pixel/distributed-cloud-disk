@@ -15,14 +15,15 @@
 #include <QClipboard>
 #include <QApplication>
 #include <QPushButton>
+#include <QLabel>
 
 FileListWidget::FileListWidget(const QString &token, int userId, QWidget *parent)
     : QWidget(parent), m_token(token), m_userId(userId),
     m_networkManager(new QNetworkAccessManager(this))
 {
     // 设置窗口大小
-    resize(850, 550);
-    setMinimumSize(750, 450);
+    resize(1000, 600);
+    setMinimumSize(850, 480);
 
     // 主布局
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
@@ -45,6 +46,11 @@ FileListWidget::FileListWidget(const QString &token, int userId, QWidget *parent
     QPushButton *downloadBtn = new QPushButton("下载选中", this);
     QPushButton *deleteBtn = new QPushButton("删除选中", this);
     QPushButton *shareBtn = new QPushButton("分享选中", this);
+
+    refreshBtn->setMinimumWidth(72);
+    downloadBtn->setMinimumWidth(96);
+    deleteBtn->setMinimumWidth(96);
+    shareBtn->setMinimumWidth(96);
 
     // 设置按钮样式
     QString btnStyle = "QPushButton { padding: 5px 10px; background-color: #5cb85c; color: white; border: none; border-radius: 3px; }"
@@ -71,12 +77,15 @@ FileListWidget::FileListWidget(const QString &token, int userId, QWidget *parent
     headers << "ID" << "文件名" << "大小(KB)" << "上传时间" << "操作";
     m_tableWidget->setHorizontalHeaderLabels(headers);
 
-    // 设置列宽
-    m_tableWidget->setColumnWidth(0, 50);
-    m_tableWidget->setColumnWidth(2, 80);
-    m_tableWidget->setColumnWidth(3, 140);
-    m_tableWidget->setColumnWidth(4, 130);
-    m_tableWidget->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    // 文件名列占用剩余空间，其余字段按内容或操作按钮宽度显示
+    QHeaderView *header = m_tableWidget->horizontalHeader();
+    header->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    header->setSectionResizeMode(1, QHeaderView::Stretch);
+    header->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    header->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+    header->setSectionResizeMode(4, QHeaderView::Fixed);
+    m_tableWidget->setColumnWidth(4, 165);
+    m_tableWidget->verticalHeader()->setDefaultSectionSize(34);
 
     m_tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -313,16 +322,42 @@ void FileListWidget::shareFileById(int fileId)
     connect(reply, &QNetworkReply::finished, this, [=]() {
         if (reply->error() == QNetworkReply::NoError) {
             QByteArray response = reply->readAll();
-            QJsonDocument resDoc = QJsonDocument::fromJson(response);
+            QJsonParseError parseError;
+            QJsonDocument resDoc = QJsonDocument::fromJson(response, &parseError);
+            if (parseError.error != QJsonParseError::NoError || !resDoc.isObject()) {
+                QMessageBox::warning(this, "失败", "服务器返回的分享数据格式错误");
+                reply->deleteLater();
+                return;
+            }
             QJsonObject resObj = resDoc.object();
 
             if (resObj.value("code").toString() == "000") {
-                QString shareUrl = resObj.value("share_url").toString();
+                QJsonObject result = resObj.value("data").toObject();
+                QString shareUrl = result.value("share_url").toString();
+                QString expireTime = result.value("expire").toString();
+                if (shareUrl.isEmpty()) {
+                    QMessageBox::warning(this, "失败", "服务器没有返回分享链接");
+                    reply->deleteLater();
+                    return;
+                }
+
                 QClipboard *clipboard = QApplication::clipboard();
                 clipboard->setText(shareUrl);
 
-                QMessageBox::information(this, "分享链接",
-                                         QString("分享链接已复制到剪贴板！\n\n链接: %1\n\n有效期: 7天").arg(shareUrl));
+                QMessageBox messageBox(QMessageBox::Information, "分享链接",
+                                       QString("分享链接已复制到剪贴板！<br><br>"
+                                               "链接：<a href=\"%1\">%1</a><br><br>"
+                                               "有效期至：%2")
+                                           .arg(shareUrl.toHtmlEscaped(),
+                                                expireTime.toHtmlEscaped()),
+                                       QMessageBox::Ok, this);
+                messageBox.setTextFormat(Qt::RichText);
+                messageBox.setTextInteractionFlags(Qt::TextBrowserInteraction);
+                const QList<QLabel *> labels = messageBox.findChildren<QLabel *>();
+                for (QLabel *label : labels) {
+                    label->setOpenExternalLinks(true);
+                }
+                messageBox.exec();
             } else {
                 QMessageBox::warning(this, "失败", resObj.value("message").toString());
             }

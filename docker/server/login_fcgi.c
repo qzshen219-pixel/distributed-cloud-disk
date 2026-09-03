@@ -2,11 +2,12 @@
 
 int main() {
     mysql_library_init(0, NULL, NULL);
+    redis_config_init();
 
     while (FCGI_Accept() >= 0) {
         printf("Content-Type: application/json\r\n\r\n");
 
-        char *post_data = read_post_data(4096);
+        char *post_data = read_post_data(4096, NULL);
         if (!post_data) {
             printf("{\"code\":\"400\",\"message\":\"Invalid request\"}");
             continue;
@@ -61,13 +62,17 @@ int main() {
 
             char *token = create_token(conn, user_id);
 
-            printf("{\"code\":\"000\",\"message\":\"Login success\",\"data\":{\"id\":%d,\"username\":\"%s\",\"nickname\":\"%s\",\"token\":\"%s\"}}",
-                   user_id, db_username, db_nickname, token);
+            if (!token) {
+                printf("{\"code\":\"TOKEN_STORE_UNAVAILABLE\",\"message\":\"Authentication service unavailable\"}");
+            } else {
+                printf("{\"code\":\"000\",\"message\":\"Login success\",\"data\":{\"id\":%d,\"username\":\"%s\",\"nickname\":\"%s\",\"token\":\"%s\"}}",
+                       user_id, db_username, db_nickname, token);
 
-            char update_query[256];
-            snprintf(update_query, sizeof(update_query),
-                "UPDATE users SET last_login=NOW() WHERE id=%d", user_id);
-            mysql_query(conn, update_query);
+                char update_query[256];
+                snprintf(update_query, sizeof(update_query),
+                    "UPDATE users SET last_login=NOW() WHERE id=%d", user_id);
+                mysql_query(conn, update_query);
+            }
         } else {
             printf("{\"code\":\"401\",\"message\":\"Invalid username or password\"}");
         }

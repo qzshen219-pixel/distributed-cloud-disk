@@ -1,0 +1,7 @@
+FROM m.daocloud.io/docker.io/library/redis:7.2-alpine
+
+COPY sentinel-entrypoint.sh /usr/local/bin/cloud-sentinel-entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/cloud-sentinel-entrypoint.sh && \
+    chmod +x /usr/local/bin/cloud-sentinel-entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/cloud-sentinel-entrypoint.sh"]

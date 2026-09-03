@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>简单网盘</title>
+<title>简单云盘</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; min-height: 100vh; }
@@ -117,7 +117,7 @@ tr:hover { background: #f1f3f4; }
 <!-- Main Page -->
 <div id="page-main" class="hidden">
   <div class="header">
-    <h1>简单网盘</h1>
+    <h1>简单云盘</h1>
     <div class="user-info">
       <span id="display-user"></span>
       <button class="btn-logout" onclick="doLogout()">退出</button>
@@ -190,9 +190,13 @@ function toast(msg, type) {
 }
 
 function api(method, path, body) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (currentUser && currentUser.token) {
+    headers['X-Auth-Token'] = currentUser.token;
+  }
   return fetch(API + path, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: body ? JSON.stringify(body) : undefined
   }).then(r => r.json());
 }
@@ -238,6 +242,10 @@ function doLogout() {
   showPage('page-login');
 }
 
+function isAuthError(r) {
+  return r && (r.code === '401' || r.code === 'INVALID_TOKEN' || r.code === 'AUTH_REQUIRED');
+}
+
 function enterMain() {
   document.getElementById('display-user').textContent = currentUser.nickname || currentUser.username;
   showPage('page-main');
@@ -245,11 +253,14 @@ function enterMain() {
 }
 
 function loadFileList() {
-  if (!currentUser) return;
+  if (!currentUser || !currentUser.token) return;
   api('GET', '/filelist').then(r => {
     if (r.code === '000') {
       fileList = r.files || [];
       renderFileList();
+    } else if (isAuthError(r)) {
+      toast('登录已过期，请重新登录', 'error');
+      doLogout();
     }
   });
 }
@@ -330,7 +341,10 @@ function uploadFile(file) {
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', API + '/upload');
-    if (currentUser && currentUser.token) { xhr.setRequestHeader('X-Auth-Token', currentUser.token); }
+    xhr.setRequestHeader('Content-Type', 'multipart/form-data; boundary=' + boundary);
+    if (currentUser && currentUser.token) {
+      xhr.setRequestHeader('X-Auth-Token', currentUser.token);
+    }
     xhr.upload.onprogress = function(ev) {
       if (ev.lengthComputable) {
         fill.style.width = Math.round(ev.loaded / ev.total * 100) + '%';
@@ -343,6 +357,9 @@ function uploadFile(file) {
         if (r.code === '000') {
           toast('上传成功: ' + file.name, 'success');
           loadFileList();
+        } else if (isAuthError(r)) {
+          toast('登录已过期，请重新登录', 'error');
+          doLogout();
         } else {
           toast(r.message || '上传失败', 'error');
         }
@@ -355,15 +372,20 @@ function uploadFile(file) {
 }
 
 function downloadFile(id) {
-  window.open(API + '/download?file_id=' + id, '_blank');
+  if (!currentUser || !currentUser.token) return toast('请先登录', 'error');
+  window.open(API + '/download?file_id=' + id + '&token=' + encodeURIComponent(currentUser.token), '_blank');
 }
 
 function deleteFile(id, name) {
+  if (!currentUser || !currentUser.token) return toast('请先登录', 'error');
   if (!confirm('确定删除 "' + name + '" ？')) return;
   api('POST', '/delete', { file_id: id }).then(r => {
     if (r.code === '000') {
       toast('已删除', 'success');
       loadFileList();
+    } else if (isAuthError(r)) {
+      toast('登录已过期', 'error');
+      doLogout();
     } else {
       toast(r.message || '删除失败', 'error');
     }
@@ -371,6 +393,7 @@ function deleteFile(id, name) {
 }
 
 function deleteSelected() {
+  if (!currentUser || !currentUser.token) return toast('请先登录', 'error');
   const checks = document.querySelectorAll('.file-check:checked');
   if (checks.length === 0) return toast('请先选择文件', 'info');
   if (!confirm('确定删除选中的 ' + checks.length + ' 个文件？')) return;
@@ -389,6 +412,7 @@ function deleteSelected() {
 
 let lastShareUrl = '';
 function shareFile(id) {
+  if (!currentUser || !currentUser.token) return toast('请先登录', 'error');
   api('POST', '/share', { file_id: id, expire_days: 7 }).then(r => {
     if (r.code === '000') {
       lastShareUrl = r.data.share_url;
@@ -396,6 +420,9 @@ function shareFile(id) {
         '分享链接：<br><a href="' + r.data.share_url + '" target="_blank" style="color:#1a73e8">' + r.data.share_url + '</a>' +
         '<br><br>有效期：' + r.data.expire;
       document.getElementById('share-modal').classList.remove('hidden');
+    } else if (isAuthError(r)) {
+      toast('登录已过期', 'error');
+      doLogout();
     } else {
       toast(r.message || '分享失败', 'error');
     }

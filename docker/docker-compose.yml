@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   cloud-disk:
     build:
@@ -10,10 +8,20 @@ services:
       - "8080:80"
     volumes:
       - cloud-data:/home/cloud/uploads
+      - cloud-mysql-data:/var/lib/mysql
+      - cloud-fastdfs-data:/home/yuqing/fastdfs/storage
     restart: unless-stopped
     environment:
       - TZ=Asia/Shanghai
+      - SHARE_BASE_URL=http://localhost:8080
+      - REDIS_HOST=127.0.0.1
+      - REDIS_PORT=6379
+      - REDIS_TOKEN_TTL=3600
 
 volumes:
   cloud-data:
+    driver: local
+  cloud-mysql-data:
+    driver: local
+  cloud-fastdfs-data:
     driver: local

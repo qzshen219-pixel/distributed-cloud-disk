@@ -28,7 +28,7 @@ private slots:
     void on_regAccount_clicked();
     void on_regButton_clicked();
     void on_loginButton_clicked();
-    void on_settingSaveBtn_clicked();
+    void on_okBtn_clicked();
 
 private:
     Ui::Login *ui;
@@ -44,7 +44,7 @@ private:
 
     void handleRegisterSuccess();
     void handleRegisterFailed(const QString &message);
-    void handleLoginSuccess(const QString &token);
+    void handleLoginSuccess(const QString &token, int userId);
     void handleLoginFailed(const QString &message);
     void handleNetworkError(const QString &error);
 };

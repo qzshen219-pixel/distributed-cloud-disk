@@ -9,8 +9,8 @@ LoginInstance* LoginInstance::m_instance = nullptr;
 QMutex LoginInstance::m_mutex;
 
 LoginInstance::LoginInstance()
-    : m_serverIP("192.168.226.128")
-    , m_serverPort("80")
+    : m_serverIP("127.0.0.1")
+    , m_serverPort("8080")
     , m_userId(0)
     , m_loggedIn(false)
 {
@@ -128,8 +128,10 @@ void LoginInstance::loadFromFile()
         QJsonDocument doc = QJsonDocument::fromJson(data);
         if (!doc.isNull()) {
             QJsonObject obj = doc.object();
-            m_serverIP = obj["serverIP"].toString("192.168.226.128");
-            m_serverPort = obj["serverPort"].toString("80");
+            m_serverIP = obj["serverIP"].toString("127.0.0.1");
+            m_serverPort = obj["serverPort"].toString("8080");
+            if (m_serverIP == "192.168.226.128") m_serverIP = "127.0.0.1";
+            if (m_serverPort == "80") m_serverPort = "8080";
             m_userId = obj["userId"].toInt(0);
             m_userName = obj["userName"].toString();
             m_userToken = obj["userToken"].toString();

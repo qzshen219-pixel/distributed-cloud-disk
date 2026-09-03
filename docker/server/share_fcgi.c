@@ -1,92 +1,217 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcgi_stdio.h>
-#include <mysql/mysql.h>
-#include <time.h>
+#include "fcgi_common.h"
+#include <limits.h>
 
-#define DB_HOST "localhost"
-#define DB_USER "cloud_user"
-#define DB_PASS "Cloud@2026#Secure"
-#define DB_NAME "file_cloud"
+static int get_strict_json_int(const char *json, const char *key, int *value) {
+    char *text = json_get_string(json, key);
+    char *end = NULL;
+    long parsed;
 
-// 生成分享 Token
-void generate_token(char *token, int len) {
-    const char *chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    srand(time(NULL));
-    for (int i = 0; i < len - 1; i++) {
-        token[i] = chars[rand() % 62];
+    if (!text) return 0;
+    errno = 0;
+    parsed = strtol(text, &end, 10);
+    if (errno != 0 || end == text || *end != '\0' ||
+        parsed < INT_MIN || parsed > INT_MAX) {
+        free(text);
+        return -1;
     }
-    token[len - 1] = '\0';
+    *value = (int)parsed;
+    free(text);
+    return 1;
 }
 
-MYSQL* connect_db() {
-    MYSQL *conn = mysql_init(NULL);
-    if (!conn) return NULL;
-    if (!mysql_real_connect(conn, DB_HOST, DB_USER, DB_PASS, DB_NAME, 3306, NULL, 0)) {
-        mysql_close(conn);
-        return NULL;
-    }
-    return conn;
+static const char *share_base_url(void) {
+    const char *configured = getenv("SHARE_BASE_URL");
+    return configured && *configured ? configured : "http://localhost:8080";
 }
 
-int main() {
+int main(void) {
     mysql_library_init(0, NULL, NULL);
-    
+    redis_config_init();
+
     while (FCGI_Accept() >= 0) {
-        char *content_length_str = getenv("CONTENT_LENGTH");
-        int len = content_length_str ? atoi(content_length_str) : 0;
-        
-        printf("Content-Type: application/json\r\n");
-        printf("\r\n");
-        
-        if (len <= 0) {
-            printf("{\"code\":\"400\",\"message\":\"No data\"}");
-            continue;
-        }
-        
-        char *data = (char*)malloc(len + 1);
-        fread(data, 1, len, stdin);
-        data[len] = '\0';
-        
+        char *token = NULL;
+        MYSQL *conn = NULL;
+        char *post_data = NULL;
+        MYSQL_RES *res = NULL;
+        char *filename = NULL;
+        int user_id;
         int file_id = 0;
         int expire_days = 7;
-        sscanf(data, "{\"file_id\":%d,\"expire_days\":%d}", &file_id, &expire_days);
-        free(data);
-        
-        if (file_id <= 0) {
-            printf("{\"code\":\"400\",\"message\":\"Invalid file_id\"}");
+        int record_found = 0;
+
+        if (!getenv("REQUEST_METHOD") ||
+            strcmp(getenv("REQUEST_METHOD"), "POST") != 0) {
+            print_json_headers("405 Method Not Allowed");
+            printf("{\"code\":\"405\",\"message\":\"POST required\"}");
             continue;
         }
-        
-        MYSQL *conn = connect_db();
+        if (!getenv("CONTENT_TYPE") ||
+            strncmp(getenv("CONTENT_TYPE"), "application/json", 16) != 0) {
+            print_json_headers("415 Unsupported Media Type");
+            printf("{\"code\":\"415\",\"message\":\"application/json required\"}");
+            continue;
+        }
+
+        token = get_auth_token();
+        if (!token) {
+            print_json_headers("401 Unauthorized");
+            printf("{\"code\":\"401\",\"message\":\"Missing token\"}");
+            continue;
+        }
+        conn = connect_db();
         if (!conn) {
-            printf("{\"code\":\"500\",\"message\":\"DB connection failed\"}");
+            print_json_headers("500 Internal Server Error");
+            printf("{\"code\":\"500\",\"message\":\"Internal server error\"}");
+            free(token);
             continue;
         }
-        
-        // 生成分享 Token
-        char share_token[33] = {0};
-        generate_token(share_token, 33);
-        
-        // 计算过期时间
-        time_t expire_time = time(NULL) + expire_days * 24 * 3600;
-        
-        char query[512];
-        snprintf(query, sizeof(query),
-                 "INSERT INTO file_shares (file_id, share_token, expire_time) "
-                 "VALUES (%d, '%s', FROM_UNIXTIME(%ld))",
-                 file_id, share_token, expire_time);
-        
-        if (mysql_query(conn, query) == 0) {
-            printf("{\"code\":\"000\",\"share_url\":\"http://192.168.226.128/share?token=%s\"}", share_token);
-        } else {
-            printf("{\"code\":\"500\",\"message\":\"Share failed\"}");
+        user_id = verify_token(conn, token);
+        free(token);
+        if (user_id < 0) {
+            print_json_headers("503 Service Unavailable");
+            printf("{\"code\":\"TOKEN_STORE_UNAVAILABLE\",\"message\":\"Authentication service unavailable\"}");
+            mysql_close(conn);
+            continue;
         }
-        
+        if (user_id == 0) {
+            print_json_headers("401 Unauthorized");
+            printf("{\"code\":\"401\",\"message\":\"Invalid token\"}");
+            mysql_close(conn);
+            continue;
+        }
+
+        post_data = read_post_data(4096, NULL);
+        if (!post_data || get_strict_json_int(post_data, "file_id", &file_id) != 1) {
+            print_json_headers("400 Bad Request");
+            printf("{\"code\":\"400\",\"message\":\"Invalid file_id\"}");
+            free(post_data);
+            mysql_close(conn);
+            continue;
+        }
+        {
+            int expire_result = get_strict_json_int(post_data, "expire_days",
+                                                    &expire_days);
+            if (expire_result < 0 || expire_days < 1 || expire_days > 365) {
+                print_json_headers("400 Bad Request");
+                printf("{\"code\":\"400\",\"message\":\"expire_days must be between 1 and 365\"}");
+                free(post_data);
+                mysql_close(conn);
+                continue;
+            }
+        }
+        free(post_data);
+        post_data = NULL;
+        if (file_id <= 0) {
+            print_json_headers("400 Bad Request");
+            printf("{\"code\":\"400\",\"message\":\"Invalid file_id\"}");
+            mysql_close(conn);
+            continue;
+        }
+
+        {
+            char query[512];
+            snprintf(query, sizeof(query),
+                "SELECT filename FROM files "
+                "WHERE id=%d AND user_id=%d AND status='active' LIMIT 1",
+                file_id, user_id);
+            if (mysql_query(conn, query) != 0) {
+                fprintf(stderr, "[share_fcgi] ownership query failed: %s\n",
+                        mysql_error(conn));
+                print_json_headers("500 Internal Server Error");
+                printf("{\"code\":\"500\",\"message\":\"Internal server error\"}");
+                mysql_close(conn);
+                continue;
+            }
+        }
+        res = mysql_store_result(conn);
+        if (!res) {
+            fprintf(stderr, "[share_fcgi] store result failed: %s\n",
+                    mysql_error(conn));
+            print_json_headers("500 Internal Server Error");
+            printf("{\"code\":\"500\",\"message\":\"Internal server error\"}");
+            mysql_close(conn);
+            continue;
+        }
+        {
+            MYSQL_ROW row = mysql_fetch_row(res);
+            if (row) {
+                record_found = 1;
+                filename = row[0] ? strdup(row[0]) : strdup("unknown");
+            }
+        }
+        mysql_free_result(res);
+        res = NULL;
+        if (!filename) {
+            if (record_found) {
+                print_json_headers("500 Internal Server Error");
+                printf("{\"code\":\"500\",\"message\":\"Internal server error\"}");
+            } else {
+                print_json_headers("404 Not Found");
+                printf("{\"code\":\"404\",\"message\":\"File not found\"}");
+            }
+            mysql_close(conn);
+            continue;
+        }
+
+        {
+            char share_token[33];
+            char update_query[512];
+            char expire_str[64];
+            char share_url[512];
+            time_t expire_time = time(NULL) + (time_t)expire_days * 24 * 3600;
+            struct tm tm_info;
+
+            if (!generate_token(share_token, sizeof(share_token))) {
+                print_json_headers("500 Internal Server Error");
+                printf("{\"code\":\"500\",\"message\":\"Token generation failed\"}");
+                free(filename);
+                mysql_close(conn);
+                continue;
+            }
+            if (!localtime_r(&expire_time, &tm_info) ||
+                strftime(expire_str, sizeof(expire_str),
+                         "%Y-%m-%dT%H:%M:%S%z", &tm_info) == 0) {
+                print_json_headers("500 Internal Server Error");
+                printf("{\"code\":\"500\",\"message\":\"Time conversion failed\"}");
+                free(filename);
+                mysql_close(conn);
+                continue;
+            }
+            snprintf(update_query, sizeof(update_query),
+                "UPDATE files SET share_token='%s', "
+                "share_expire=FROM_UNIXTIME(%lld) "
+                "WHERE id=%d AND user_id=%d AND status='active'",
+                share_token, (long long)expire_time, file_id, user_id);
+            if (mysql_query(conn, update_query) != 0) {
+                fprintf(stderr, "[share_fcgi] update failed: %s\n",
+                        mysql_error(conn));
+                print_json_headers("500 Internal Server Error");
+                printf("{\"code\":\"500\",\"message\":\"Internal server error\"}");
+            } else if (mysql_affected_rows(conn) != 1) {
+                print_json_headers("404 Not Found");
+                printf("{\"code\":\"404\",\"message\":\"File not found\"}");
+            } else {
+                const char *base_url = share_base_url();
+                size_t base_len = strlen(base_url);
+                snprintf(share_url, sizeof(share_url), "%.*s/download?share_token=%s",
+                         (int)(base_len > 0 && base_url[base_len - 1] == '/'
+                               ? base_len - 1 : base_len),
+                         base_url, share_token);
+                print_json_headers(NULL);
+                printf("{\"code\":\"000\",\"data\":{\"share_url\":");
+                print_json_string(share_url);
+                printf(",\"filename\":");
+                print_json_string(filename);
+                printf(",\"expire\":");
+                print_json_string(expire_str);
+                printf(",\"expire_days\":%d}}", expire_days);
+            }
+        }
+
+        free(filename);
         mysql_close(conn);
     }
-    
+
     mysql_library_end();
     return 0;
 }

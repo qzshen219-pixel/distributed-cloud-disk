@@ -6,7 +6,7 @@ int main() {
     while (FCGI_Accept() >= 0) {
         printf("Content-Type: application/json\r\n\r\n");
 
-        char *post_data = read_post_data(4096);
+        char *post_data = read_post_data(4096, NULL);
         if (!post_data) {
             printf("{\"code\":\"400\",\"message\":\"Invalid request\"}");
             continue;

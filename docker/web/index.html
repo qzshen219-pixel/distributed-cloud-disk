@@ -242,6 +242,10 @@ function doLogout() {
   showPage('page-login');
 }
 
+function isAuthError(r) {
+  return r && (r.code === '401' || r.code === 'INVALID_TOKEN' || r.code === 'AUTH_REQUIRED');
+}
+
 function enterMain() {
   document.getElementById('display-user').textContent = currentUser.nickname || currentUser.username;
   showPage('page-main');
@@ -254,7 +258,7 @@ function loadFileList() {
     if (r.code === '000') {
       fileList = r.files || [];
       renderFileList();
-    } else if (r.code === '401') {
+    } else if (isAuthError(r)) {
       toast('登录已过期，请重新登录', 'error');
       doLogout();
     }
@@ -337,6 +341,7 @@ function uploadFile(file) {
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', API + '/upload');
+    xhr.setRequestHeader('Content-Type', 'multipart/form-data; boundary=' + boundary);
     if (currentUser && currentUser.token) {
       xhr.setRequestHeader('X-Auth-Token', currentUser.token);
     }
@@ -352,6 +357,9 @@ function uploadFile(file) {
         if (r.code === '000') {
           toast('上传成功: ' + file.name, 'success');
           loadFileList();
+        } else if (isAuthError(r)) {
+          toast('登录已过期，请重新登录', 'error');
+          doLogout();
         } else {
           toast(r.message || '上传失败', 'error');
         }
@@ -375,7 +383,7 @@ function deleteFile(id, name) {
     if (r.code === '000') {
       toast('已删除', 'success');
       loadFileList();
-    } else if (r.code === '401') {
+    } else if (isAuthError(r)) {
       toast('登录已过期', 'error');
       doLogout();
     } else {
@@ -412,7 +420,7 @@ function shareFile(id) {
         '分享链接：<br><a href="' + r.data.share_url + '" target="_blank" style="color:#1a73e8">' + r.data.share_url + '</a>' +
         '<br><br>有效期：' + r.data.expire;
       document.getElementById('share-modal').classList.remove('hidden');
-    } else if (r.code === '401') {
+    } else if (isAuthError(r)) {
       toast('登录已过期', 'error');
       doLogout();
     } else {

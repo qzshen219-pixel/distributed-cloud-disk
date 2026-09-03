@@ -172,6 +172,13 @@ void MainWindow::on_uploadBtn_clicked()
         return;
     }
 
+    LoginInstance *ins = LoginInstance::getInstance();
+    QString token = ins->getUserToken();
+    if (token.isEmpty()) {
+        QMessageBox::warning(this, "提示", "登录凭证无效，请重新登录！");
+        return;
+    }
+
     QFile *file = new QFile(filePath);
     if (!file->open(QIODevice::ReadOnly)) {
         QMessageBox::warning(this, "错误", "无法打开文件！");
@@ -186,7 +193,6 @@ void MainWindow::on_uploadBtn_clicked()
     appendLog("开始上传文件...");
     setProgress(0);
 
-    LoginInstance *ins = LoginInstance::getInstance();
     QString url = QString("http://%1:%2/upload")
                       .arg(ins->getServerIP())
                       .arg(ins->getServerPort());
@@ -194,6 +200,7 @@ void MainWindow::on_uploadBtn_clicked()
     QNetworkAccessManager *manager = new QNetworkAccessManager(this);
     QNetworkRequest request;
     request.setUrl(QUrl(url));
+    request.setRawHeader("X-Auth-Token", token.toUtf8());
 
     // 文件部分
     QHttpPart filePart;
@@ -267,9 +274,9 @@ void MainWindow::on_fileListBtn_clicked()
         return;
     }
 
-    FileListWidget *fileList = new FileListWidget(ins->getUserToken(), ins->getUserId(), this);
+    FileListWidget *fileList = new FileListWidget(ins->getUserToken(), ins->getUserId(), nullptr);
+    fileList->setAttribute(Qt::WA_DeleteOnClose);
     fileList->setWindowTitle("我的文件 - " + ins->getUserName());
-    fileList->resize(850, 550);
     fileList->show();
 
     appendLog("文件列表窗口已打开");

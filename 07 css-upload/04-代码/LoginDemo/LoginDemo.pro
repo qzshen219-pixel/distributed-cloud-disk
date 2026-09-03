@@ -18,4 +18,5 @@ HEADERS += \
 
 FORMS += \
     login.ui \
-    mainwindow.ui
+    mainwindow.ui \
+    mytitlebar.ui
